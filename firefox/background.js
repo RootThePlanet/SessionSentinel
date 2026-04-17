@@ -193,7 +193,7 @@ async function processTokenObservation({
       alertsToAdd.push(
         buildAlert(
           "unexpected_token_change",
-          sensitivity === "high" ? "high" : "medium",
+          "low",
           {
             site,
             source,
