@@ -150,9 +150,7 @@ function getAlertInsights(alert, severity) {
     return {
       reason: `The ${source} token "${token}" on ${site} changed multiple times within a short window.`,
       severityReason:
-        severity === "medium"
-          ? "Rated medium because this was detected at high sensitivity. Frequent changes may still be normal for this site."
-          : "Rated low because many websites routinely rotate session tokens as a security measure to prevent theft. This is usually expected behavior.",
+        "Rated low because many websites routinely rotate session tokens as a security measure to prevent theft. This is usually expected behavior.",
       plainMeaning:
         "Your session token was refreshed several times in quick succession. Most sites do this intentionally to protect your account — it's a standard security practice called token rotation.",
       recommendation:
