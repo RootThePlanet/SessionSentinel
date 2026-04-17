@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SessionSentinel Settings</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 24px; max-width: 560px; }
+      h1 { margin-top: 0; }
+      fieldset { margin-bottom: 16px; }
+      label { display: block; margin-bottom: 8px; }
+      button { padding: 6px 12px; }
+      #status { margin-top: 10px; color: #2e7d32; }
+    </style>
+  </head>
+  <body>
+    <h1>SessionSentinel Settings</h1>
+    <fieldset>
+      <label>
+        <input id="monitoringEnabled" type="checkbox" />
+        Enable token and auth cookie monitoring
+      </label>
+      <label for="alertSensitivity">Alert sensitivity</label>
+      <select id="alertSensitivity">
+        <option value="high">High (alert quickly)</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low (alert less often)</option>
+      </select>
+    </fieldset>
+    <button id="save">Save</button>
+    <div id="status"></div>
+    <script src="options.js"></script>
+  </body>
+</html>

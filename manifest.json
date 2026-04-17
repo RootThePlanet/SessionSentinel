@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "SessionSentinel",
+  "description": "Monitor session token and authentication cookie behavior to detect suspicious account session activity.",
+  "version": "0.1.0",
+  "permissions": ["storage", "cookies", "alarms", "tabs"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "SessionSentinel",
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["sitePatterns.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
