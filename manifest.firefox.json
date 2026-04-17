@@ -1,14 +1,31 @@
 {
-  "manifest_version": 3,
+  "manifest_version": 2,
   "name": "SessionSentinel",
   "description": "Monitor session token and authentication cookie behavior to detect suspicious account session activity.",
   "version": "0.2.0",
-  "permissions": ["storage", "cookies", "alarms", "tabs", "notifications"],
-  "host_permissions": ["<all_urls>"],
-  "background": {
-    "service_worker": "background.js"
+  "permissions": [
+    "storage",
+    "cookies",
+    "alarms",
+    "tabs",
+    "notifications",
+    "<all_urls>"
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "session-sentinel@example.com",
+      "strict_min_version": "109.0"
+    }
   },
-  "action": {
+  "background": {
+    "scripts": [
+      "browserApi.js",
+      "constants.js",
+      "sitePatterns.js",
+      "background.js"
+    ]
+  },
+  "browser_action": {
     "default_title": "SessionSentinel",
     "default_popup": "popup.html",
     "default_icon": {
@@ -22,7 +39,10 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  "options_page": "options.html",
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
