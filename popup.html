@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SessionSentinel</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 12px; width: 360px; }
+      h1 { font-size: 16px; margin: 0 0 8px; }
+      .meta { font-size: 12px; color: #444; margin-bottom: 10px; }
+      .alert { border: 1px solid #ddd; border-radius: 6px; padding: 8px; margin-bottom: 8px; }
+      .high { border-color: #d9534f; }
+      .medium { border-color: #f0ad4e; }
+      .low { border-color: #5bc0de; }
+      .empty { color: #666; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <h1>SessionSentinel</h1>
+    <div id="meta" class="meta">Loading monitoring status…</div>
+    <div id="alerts"></div>
+    <script src="popup.js"></script>
+  </body>
+</html>
