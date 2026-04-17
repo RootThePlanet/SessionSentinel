@@ -28,14 +28,13 @@ Works on **Chrome** (Manifest V3) and **Firefox** (Manifest V2).
 ### Chrome
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
-3. Click **Load unpacked** and select this repository folder
-4. The extension uses `manifest.json` (Manifest V3)
+3. Click **Load unpacked** and select the `chrome/` folder
+4. The extension uses `chrome/manifest.json` (Manifest V3)
 
 ### Firefox
 1. Open `about:debugging#/runtime/this-firefox`
 2. Click **Load Temporary Add-on**
-3. Select `manifest.firefox.json` from this repository folder
-4. For permanent installation, rename `manifest.firefox.json` to `manifest.json`
+3. Select `firefox/manifest.json`
 
 ## Configuration
 
@@ -51,8 +50,8 @@ Open the extension **Settings** page to:
 
 | File | Purpose |
 |------|---------|
-| `manifest.json` | Chrome Manifest V3 configuration |
-| `manifest.firefox.json` | Firefox Manifest V2 configuration |
+| `chrome/manifest.json` | Chrome Manifest V3 configuration |
+| `firefox/manifest.json` | Firefox Manifest V2 configuration |
 | `browserApi.js` | Cross-browser API abstraction (`chrome.*` / `browser.*`) |
 | `constants.js` | Shared constants, message types, and default settings |
 | `sitePatterns.js` | Built-in session token patterns for popular sites |
