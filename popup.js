@@ -48,6 +48,7 @@ const SEVERITY_ICON = {
 // ---------------------------------------------------------------------------
 
 let activeSeverityFilter = "all";
+let expandedAlertId = null;
 
 // ---------------------------------------------------------------------------
 // Dark mode — supports "system" | "dark" | "light" (and legacy booleans)
@@ -132,6 +133,85 @@ function timeAgo(ts) {
   return Math.floor(diff / 86400000) + "d ago";
 }
 
+function prettifyType(type) {
+  const label = type || "anomaly";
+  return label
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getAlertInsights(alert, severity) {
+  const source = alert.source || "session";
+  const token = alert.tokenName || "a monitored token";
+  const site = alert.site || "this site";
+
+  if (alert.type === "unexpected_token_change") {
+    return {
+      reason: `SessionSentinel observed ${token} changing repeatedly within a short time window on ${site}.`,
+      severityReason:
+        severity === "high"
+          ? "Marked high because rapid token churn strongly suggests active session instability or tampering."
+          : "Marked medium because repeated token changes can indicate unusual authentication behavior.",
+      plainMeaning:
+        "Your signed-in state may be getting replaced repeatedly. This can happen during risky account activity or aggressive re-authentication."
+    };
+  }
+
+  if (alert.type === "possible_replay") {
+    return {
+      reason: `A previously seen ${token} value for ${site} appeared again in ${source}.`,
+      severityReason:
+        "Marked high because replayed session values are a strong indicator of token reuse risk.",
+      plainMeaning:
+        "An old sign-in token seems to be active again. That can mean someone reused a prior session."
+    };
+  }
+
+  if (alert.type === "concurrent_session_usage") {
+    return {
+      reason: `${token} was detected in multiple browser stores/profiles for ${site}.`,
+      severityReason:
+        "Marked high because simultaneous reuse across stores can indicate session sharing or hijacking.",
+      plainMeaning:
+        "The same login session appears in more than one browser profile at once, which can be suspicious."
+    };
+  }
+
+  return {
+    reason: alert.message || `SessionSentinel flagged ${prettifyType(alert.type)} on ${site}.`,
+    severityReason:
+      severity === "high"
+        ? "Marked high because this event matches a high-risk session behavior pattern."
+        : severity === "medium"
+          ? "Marked medium because this event is suspicious but less conclusive."
+          : "Marked low because this is informational or lower-confidence suspicious behavior.",
+    plainMeaning:
+      "Something unusual was detected in your session activity. Review where and when this happened."
+  };
+}
+
+function createDetailsRow(label, value) {
+  const row = document.createElement("div");
+  row.className = "alert-detail-row";
+
+  const key = document.createElement("span");
+  key.className = "alert-detail-label";
+  key.textContent = label;
+
+  const text = document.createElement("span");
+  text.className = "alert-detail-text";
+  text.textContent = value;
+
+  row.append(key, text);
+  return row;
+}
+
+function toggleAlertDetails(alertId) {
+  expandedAlertId = expandedAlertId === alertId ? null : alertId;
+  render();
+}
+
 // ---------------------------------------------------------------------------
 // Rendering
 // ---------------------------------------------------------------------------
@@ -139,8 +219,24 @@ function timeAgo(ts) {
 function renderAlert(alert) {
   const container = document.createElement("div");
   const severity = normalizeSeverity(alert.severity);
+  const isExpanded = expandedAlertId === alert.id;
   container.className = "alert " + severity;
   container.dataset.alertId = alert.id;
+  container.classList.toggle("expanded", isExpanded);
+  container.tabIndex = 0;
+  container.setAttribute("role", "button");
+  container.setAttribute(
+    "aria-label",
+    `${prettifyType(alert.type)} alert on ${alert.site || "unknown"}`
+  );
+  container.setAttribute("aria-expanded", String(isExpanded));
+  container.title = "Click to view details";
+  container.addEventListener("click", () => toggleAlertDetails(alert.id));
+  container.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    toggleAlertDetails(alert.id);
+  });
 
   // Severity icon
   const severityEl = document.createElement("div");
@@ -192,7 +288,17 @@ function renderAlert(alert) {
     meta.append(sep2, sourceSpan);
   }
 
-  content.append(header, msg, meta);
+  const insights = getAlertInsights(alert, severity);
+  const details = document.createElement("div");
+  details.className = "alert-details";
+  details.hidden = !isExpanded;
+  details.append(
+    createDetailsRow("Reason", insights.reason),
+    createDetailsRow("Severity", insights.severityReason),
+    createDetailsRow("Meaning", insights.plainMeaning)
+  );
+
+  content.append(header, msg, meta, details);
 
   // Dismiss button
   const dismiss = document.createElement("button");
@@ -279,6 +385,9 @@ async function render() {
   // Alert list
   const alertsEl = document.getElementById("alerts");
   const filtered = getFilteredAlerts(alerts);
+  if (expandedAlertId && !filtered.some((a) => a.id === expandedAlertId)) {
+    expandedAlertId = null;
+  }
 
   if (!filtered.length) {
     const empty = document.createElement("div");
