@@ -427,7 +427,7 @@ async function render() {
   // Group alerts by site
   const groups = new Map();
   for (const a of filtered) {
-    const site = a.site || "unknown";
+    const site = a.site || "Unknown site";
     if (!groups.has(site)) groups.set(site, []);
     groups.get(site).push(a);
   }
