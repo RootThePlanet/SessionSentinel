@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SessionSentinel</title>
+    <style>
+      /* =================== THEME VARIABLES =================== */
+      :root {
+        --bg: #ffffff;
+        --bg-raised: #f8fafc;
+        --fg: #0f172a;
+        --fg-secondary: #475569;
+        --fg-muted: #94a3b8;
+        --border: #e2e8f0;
+        --accent: #3b82f6;
+        --accent-hover: #2563eb;
+        --accent-soft: #eff6ff;
+        --high: #ef4444;
+        --high-bg: #fef2f2;
+        --high-border: #fecaca;
+        --medium: #f59e0b;
+        --medium-bg: #fffbeb;
+        --medium-border: #fde68a;
+        --low: #3b82f6;
+        --low-bg: #eff6ff;
+        --low-border: #bfdbfe;
+        --card-bg: #ffffff;
+        --card-hover: #f8fafc;
+        --btn-bg: #f1f5f9;
+        --btn-hover: #e2e8f0;
+        --input-bg: #ffffff;
+        --input-border: #cbd5e1;
+        --success: #16a34a;
+        --danger: #ef4444;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+        --radius: 8px;
+        --radius-sm: 6px;
+        --radius-full: 9999px;
+        --transition: 0.15s ease;
+      }
+      html.dark {
+        --bg: #0f172a;
+        --bg-raised: #1e293b;
+        --fg: #f1f5f9;
+        --fg-secondary: #94a3b8;
+        --fg-muted: #64748b;
+        --border: #334155;
+        --accent: #60a5fa;
+        --accent-hover: #93c5fd;
+        --accent-soft: rgba(96, 165, 250, 0.12);
+        --high: #f87171;
+        --high-bg: rgba(248, 113, 113, 0.1);
+        --high-border: rgba(248, 113, 113, 0.3);
+        --medium: #fbbf24;
+        --medium-bg: rgba(251, 191, 36, 0.1);
+        --medium-border: rgba(251, 191, 36, 0.3);
+        --low: #60a5fa;
+        --low-bg: rgba(96, 165, 250, 0.1);
+        --low-border: rgba(96, 165, 250, 0.3);
+        --card-bg: #1e293b;
+        --card-hover: #293548;
+        --btn-bg: #1e293b;
+        --btn-hover: #334155;
+        --input-bg: #1e293b;
+        --input-border: #475569;
+        --success: #4ade80;
+        --danger: #f87171;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25);
+      }
+
+      /* =================== RESET & BASE =================== */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+        width: 400px;
+        background: var(--bg);
+        color: var(--fg);
+        font-size: 13px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+      .popup-container { padding: 16px; }
+
+      /* =================== HEADER =================== */
+      .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+      .brand { display: flex; align-items: center; gap: 8px; }
+      .brand-icon {
+        display: flex; align-items: center; justify-content: center;
+        width: 28px; height: 28px; background: var(--accent-soft);
+        border-radius: var(--radius-sm); color: var(--accent); flex-shrink: 0;
+      }
+      .brand-icon svg { width: 16px; height: 16px; }
+      .brand h1 { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+      .header-actions { display: flex; gap: 4px; align-items: center; }
+      .icon-btn {
+        display: flex; align-items: center; justify-content: center;
+        width: 32px; height: 32px; background: var(--btn-bg);
+        border: 1px solid transparent; border-radius: var(--radius-sm);
+        cursor: pointer; color: var(--fg-secondary); transition: all var(--transition);
+      }
+      .icon-btn:hover { background: var(--btn-hover); color: var(--fg); }
+      .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+      .icon-btn.monitoring-active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+      .icon-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+      /* =================== STATUS BAR =================== */
+      .status-bar {
+        display: flex; align-items: center; gap: 8px;
+        padding: 8px 12px; background: var(--bg-raised);
+        border: 1px solid var(--border); border-radius: var(--radius);
+        margin-bottom: 12px; font-size: 12px; color: var(--fg-secondary);
+      }
+      .status-dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: var(--fg-muted); flex-shrink: 0; transition: background var(--transition);
+      }
+      .status-dot.active { background: var(--success); animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite; }
+      @keyframes pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
+        50% { box-shadow: 0 0 0 4px rgba(22, 163, 74, 0); }
+      }
+      .status-text { flex: 1; }
+
+      /* =================== TOOLBAR =================== */
+      .toolbar { margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
+      .search-box { position: relative; display: flex; align-items: center; }
+      .search-box > svg { position: absolute; left: 10px; width: 14px; height: 14px; color: var(--fg-muted); pointer-events: none; }
+      .search-box input {
+        width: 100%; padding: 7px 10px 7px 32px;
+        border: 1px solid var(--input-border); border-radius: var(--radius-sm);
+        font-size: 12px; background: var(--input-bg); color: var(--fg);
+        transition: border-color var(--transition), box-shadow var(--transition);
+      }
+      .search-box input::placeholder { color: var(--fg-muted); }
+      .search-box input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+      html.dark .search-box input:focus { box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15); }
+
+      /* Severity filter tabs */
+      .severity-tabs { display: flex; gap: 4px; }
+      .severity-tab {
+        flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
+        padding: 5px 8px; border: 1px solid var(--border);
+        border-radius: var(--radius-sm); background: var(--bg);
+        color: var(--fg-secondary); font-size: 11px; font-weight: 500;
+        cursor: pointer; transition: all var(--transition); white-space: nowrap;
+      }
+      .severity-tab:hover { background: var(--btn-hover); }
+      .severity-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+      .severity-tab.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); font-weight: 600; }
+      .severity-tab[data-severity="high"].active { background: var(--high-bg); color: var(--high); border-color: var(--high); }
+      .severity-tab[data-severity="medium"].active { background: var(--medium-bg); color: var(--medium); border-color: var(--medium); }
+      .severity-tab[data-severity="low"].active { background: var(--low-bg); color: var(--low); border-color: var(--low); }
+      .tab-count {
+        font-size: 10px; font-weight: 600; min-width: 18px; height: 18px;
+        display: inline-flex; align-items: center; justify-content: center;
+        border-radius: var(--radius-full); background: var(--border); color: var(--fg-secondary);
+      }
+      .severity-tab.active .tab-count { background: currentColor; color: var(--bg); }
+
+      /* =================== ALERT LIST =================== */
+      .alert-list { max-height: 320px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+      .alert-list::-webkit-scrollbar { width: 4px; }
+      .alert-list::-webkit-scrollbar-track { background: transparent; }
+      .alert-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+      /* =================== ALERT CARD =================== */
+      .alert {
+        display: flex; gap: 10px; padding: 10px 12px; margin-bottom: 6px;
+        background: var(--card-bg); border: 1px solid var(--border);
+        border-radius: var(--radius); transition: background var(--transition), border-color var(--transition);
+        animation: alertIn 0.2s ease-out; position: relative;
+      }
+      .alert:hover { background: var(--card-hover); }
+      .alert:last-child { margin-bottom: 0; }
+      @keyframes alertIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+      /* Severity icon */
+      .alert-severity { display: flex; align-items: flex-start; padding-top: 1px; flex-shrink: 0; }
+      .severity-icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+      .severity-icon svg { width: 12px; height: 12px; }
+      .alert.high .severity-icon { background: var(--high-bg); color: var(--high); }
+      .alert.medium .severity-icon { background: var(--medium-bg); color: var(--medium); }
+      .alert.low .severity-icon { background: var(--low-bg); color: var(--low); }
+
+      /* Alert content */
+      .alert-content { flex: 1; min-width: 0; }
+      .alert-header { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+      .alert-type { font-size: 12px; font-weight: 600; text-transform: capitalize; color: var(--fg); }
+      .alert-badge {
+        font-size: 10px; font-weight: 600; padding: 1px 6px;
+        border-radius: var(--radius-full); text-transform: uppercase; letter-spacing: 0.03em;
+      }
+      .alert.high .alert-badge { background: var(--high-bg); color: var(--high); border: 1px solid var(--high-border); }
+      .alert.medium .alert-badge { background: var(--medium-bg); color: var(--medium); border: 1px solid var(--medium-border); }
+      .alert.low .alert-badge { background: var(--low-bg); color: var(--low); border: 1px solid var(--low-border); }
+      .alert-message { font-size: 12px; color: var(--fg-secondary); margin-bottom: 4px; line-height: 1.4; }
+      .alert-meta { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--fg-muted); }
+      .alert-meta-sep { color: var(--border); }
+
+      /* Dismiss button */
+      .dismiss-btn {
+        position: absolute; top: 8px; right: 8px;
+        display: flex; align-items: center; justify-content: center;
+        width: 22px; height: 22px; background: none;
+        border: 1px solid transparent; border-radius: 4px;
+        cursor: pointer; color: var(--fg-muted); line-height: 1;
+        transition: all var(--transition); padding: 0;
+      }
+      .dismiss-btn:hover { background: var(--high-bg); color: var(--high); border-color: var(--high-border); }
+      .dismiss-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+      .dismiss-btn svg { width: 14px; height: 14px; }
+
+      /* =================== EMPTY STATE =================== */
+      .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 16px; text-align: center; }
+      .empty-icon { width: 48px; height: 48px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+      .empty-icon svg { width: 24px; height: 24px; }
+      .empty-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+      .empty-desc { font-size: 12px; color: var(--fg-muted); max-width: 240px; }
+
+      /* =================== FOOTER =================== */
+      .footer { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+      .footer-btn {
+        flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+        padding: 7px 12px; border: 1px solid var(--border);
+        border-radius: var(--radius-sm); background: var(--bg);
+        color: var(--fg-secondary); font-size: 12px; font-weight: 500;
+        cursor: pointer; transition: all var(--transition);
+      }
+      .footer-btn:hover { background: var(--btn-hover); color: var(--fg); }
+      .footer-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+      .footer-btn svg { width: 14px; height: 14px; }
+      .footer-btn.danger:hover { background: var(--high-bg); color: var(--high); border-color: var(--high-border); }
+    </style>
+  </head>
+  <body>
+    <div class="popup-container">
+      <!-- Header -->
+      <header class="header">
+        <div class="brand">
+          <div class="brand-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <h1>SessionSentinel</h1>
+        </div>
+        <div class="header-actions">
+          <button id="toggleMonitor" class="icon-btn" title="Pause monitoring" aria-label="Toggle monitoring">
+            <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+          </button>
+          <button id="toggleDark" class="icon-btn" title="Toggle theme" aria-label="Toggle theme">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+          <button id="openOptions" class="icon-btn" title="Settings" aria-label="Open settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Status bar -->
+      <div class="status-bar" role="status" aria-live="polite">
+        <span id="statusDot" class="status-dot active"></span>
+        <span id="meta" class="status-text">Loading&hellip;</span>
+      </div>
+
+      <!-- Toolbar: search + severity filter tabs -->
+      <div class="toolbar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="searchInput" placeholder="Filter alerts&hellip;" aria-label="Filter alerts" />
+        </div>
+        <div class="severity-tabs" id="severityFilter" role="tablist" aria-label="Filter by severity">
+          <button role="tab" class="severity-tab active" data-severity="all" aria-selected="true">All <span class="tab-count" id="countAll">0</span></button>
+          <button role="tab" class="severity-tab" data-severity="high" aria-selected="false">High <span class="tab-count" id="countHigh">0</span></button>
+          <button role="tab" class="severity-tab" data-severity="medium" aria-selected="false">Medium <span class="tab-count" id="countMed">0</span></button>
+          <button role="tab" class="severity-tab" data-severity="low" aria-selected="false">Low <span class="tab-count" id="countLow">0</span></button>
+        </div>
+      </div>
+
+      <!-- Alert list -->
+      <div id="alerts" class="alert-list" role="log" aria-label="Alert list" aria-live="polite"></div>
+
+      <!-- Footer actions -->
+      <div class="footer">
+        <button id="exportBtn" class="footer-btn" aria-label="Export alerts as JSON">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+        <button id="clearBtn" class="footer-btn danger" aria-label="Clear all alerts">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Clear All
+        </button>
+      </div>
+    </div>
+    <script src="browserApi.js"></script>
+    <script src="constants.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
