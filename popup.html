@@ -219,6 +219,21 @@
       .dismiss-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
       .dismiss-btn svg { width: 14px; height: 14px; }
 
+      /* =================== SITE GROUP HEADER =================== */
+      .site-group-header {
+        display: flex; align-items: center; gap: 6px;
+        padding: 6px 4px 4px; margin-top: 4px;
+        font-size: 11px; font-weight: 600; color: var(--fg-muted);
+        text-transform: uppercase; letter-spacing: 0.04em;
+      }
+      .site-group-header:first-child { margin-top: 0; }
+      .site-group-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .site-group-count {
+        font-size: 10px; font-weight: 700; min-width: 18px; height: 18px;
+        display: inline-flex; align-items: center; justify-content: center;
+        border-radius: var(--radius-full); background: var(--border); color: var(--fg-secondary);
+      }
+
       /* =================== EMPTY STATE =================== */
       .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 16px; text-align: center; }
       .empty-icon { width: 48px; height: 48px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
