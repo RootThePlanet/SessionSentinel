@@ -59,7 +59,7 @@ function trimAlertList(alerts) {
 
 function buildAlert(type, severity, details) {
   return {
-    id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    id: crypto.randomUUID(),
     createdAt: Date.now(),
     type,
     severity,
@@ -93,17 +93,23 @@ async function processTokenObservation({ source, site, tokenName, tokenValue, st
     hashHistory: []
   };
 
+  const previousHistory = previous.hashHistory || [];
+  const trimmedHistory =
+    previousHistory.length >= MAX_HISTORY ? previousHistory.slice(-(MAX_HISTORY - 1)) : previousHistory;
+  const hashHistory = [...trimmedHistory, { hash: tokenHash, at: now }];
+
   const next = {
     ...previous,
     lastSeenAt: now,
-    hashHistory: [...(previous.hashHistory || []), { hash: tokenHash, at: now }].slice(-MAX_HISTORY)
+    hashHistory
   };
 
   if (previous.lastHash && previous.lastHash !== tokenHash) {
-    const freshChanges = [...(previous.changes || []), now].filter((ts) => now - ts <= rules.windowMs);
-    next.changes = freshChanges;
+    const recentChanges = (previous.changes || []).filter((ts) => now - ts <= rules.windowMs);
+    recentChanges.push(now);
+    next.changes = recentChanges;
 
-    if (freshChanges.length >= rules.changeThreshold) {
+    if (recentChanges.length >= rules.changeThreshold) {
       alertsToAdd.push(
         buildAlert("unexpected_token_change", sensitivity === "high" ? "high" : "medium", {
           site,
@@ -130,21 +136,31 @@ async function processTokenObservation({ source, site, tokenName, tokenValue, st
   }
 
   if (source === "cookie" && storeId) {
-    const stores = new Set(next.storeIdsByHash[tokenHash] || []);
-    stores.add(storeId);
-    next.storeIdsByHash[tokenHash] = [...stores];
+    const existingStores = next.storeIdsByHash[tokenHash] || [];
+    const hasStore = existingStores.includes(storeId);
+    const stores = hasStore ? existingStores : [...existingStores, storeId];
+    next.storeIdsByHash[tokenHash] = stores;
 
-    if (stores.size > 1) {
+    if (!hasStore && stores.length > 1) {
       alertsToAdd.push(
         buildAlert("concurrent_session_usage", "high", {
           site,
           source,
           tokenName,
           message: `Cookie token ${tokenName} appears in multiple browser stores for ${site}.`,
-          metadata: { storeIds: [...stores] }
+          metadata: { storeIds: stores }
         })
       );
     }
+  }
+
+  if (next.storeIdsByHash && typeof next.storeIdsByHash === "object") {
+    const hashesInHistory = new Set(next.hashHistory.map((entry) => entry.hash));
+    Object.keys(next.storeIdsByHash).forEach((hash) => {
+      if (!hashesInHistory.has(hash)) {
+        delete next.storeIdsByHash[hash];
+      }
+    });
   }
 
   next.lastHash = tokenHash;

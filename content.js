@@ -1,6 +1,7 @@
 (() => {
   const GENERIC_TOKEN_KEYWORDS = /(token|session|auth|jwt|sid|csrf|bearer)/i;
   const MAX_VALUE_LENGTH = 4096;
+  const POLLING_INTERVAL_MS = 30 * 1000;
 
   function matchingPattern(hostname) {
     const patterns = globalThis.SESSION_SENTINEL_SITE_PATTERNS || {};
@@ -33,7 +34,7 @@
         entries.push({ key, value: rawValue.slice(0, MAX_VALUE_LENGTH) });
       }
     } catch (error) {
-      return { error: String(error), entries: [] };
+      return { error: error?.message || error?.toString() || "Unknown error while accessing localStorage", entries: [] };
     }
 
     return { entries };
@@ -45,19 +46,29 @@
       return;
     }
 
-    chrome.runtime.sendMessage({
-      type: "LOCAL_STORAGE_SNAPSHOT",
-      payload: {
-        trigger,
-        hostname: location.hostname,
-        origin: location.origin,
-        timestamp: Date.now(),
-        entries: snapshot.entries
-      }
-    });
+    try {
+      chrome.runtime.sendMessage(
+        {
+          type: "LOCAL_STORAGE_SNAPSHOT",
+          payload: {
+            trigger,
+            hostname: location.hostname,
+            origin: location.origin,
+            timestamp: Date.now(),
+            entries: snapshot.entries
+          }
+        },
+        () => {
+          void chrome.runtime.lastError;
+        }
+      );
+    } catch (_error) {
+      // Extension context may be unavailable during page teardown.
+    }
   }
 
   sendSnapshot("initial");
   window.addEventListener("storage", () => sendSnapshot("storage_event"));
-  setInterval(() => sendSnapshot("periodic"), 30 * 1000);
+  const intervalId = setInterval(() => sendSnapshot("periodic"), POLLING_INTERVAL_MS);
+  window.addEventListener("pagehide", () => clearInterval(intervalId), { once: true });
 })();
