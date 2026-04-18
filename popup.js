@@ -7,6 +7,7 @@ const C = globalThis.SESSION_SENTINEL_CONSTANTS || {};
 const MSG = C.MSG || {};
 const SEVERITY_LEVELS = C.SEVERITY_LEVELS || ["low", "medium", "high"];
 const MAX_POPUP_ALERTS = 50;
+const INCIDENT_KEY_SEPARATOR = "::";
 
 // ---------------------------------------------------------------------------
 // SVG icon templates (inline, no external dependencies)
@@ -229,7 +230,7 @@ function buildIncidents(alerts) {
     if (alert.dismissed) continue;
     const site = alertSiteLabel(alert);
     const type = alertTypeLabel(alert);
-    const key = `${site}::${type}`;
+    const key = `${site}${INCIDENT_KEY_SEPARATOR}${type}`;
     const severity = normalizeSeverity(alert.severity);
     if (!grouped.has(key)) {
       grouped.set(key, {
@@ -247,7 +248,7 @@ function buildIncidents(alerts) {
 
     const incident = grouped.get(key);
     incident.eventCount += 1;
-    if ((alert.createdAt || 0) >= incident.createdAt) {
+    if ((alert.createdAt || 0) > incident.createdAt) {
       incident.createdAt = alert.createdAt || incident.createdAt;
       incident.message = alert.message || incident.message;
       incident.source = alert.source || incident.source;
@@ -334,8 +335,9 @@ function renderAlert(alert) {
   sepEvents.textContent = "\u00b7";
   sepEvents.setAttribute("aria-hidden", "true");
   const eventCountSpan = document.createElement("span");
+  const eventCount = alert.eventCount || 1;
   eventCountSpan.textContent =
-    `${alert.eventCount || 1} event` + ((alert.eventCount || 1) !== 1 ? "s" : "");
+    `${eventCount} event` + (eventCount !== 1 ? "s" : "");
   meta.append(sepEvents, eventCountSpan);
 
   if (alert.source) {
@@ -509,7 +511,9 @@ async function render() {
 
 async function dismissAlert(incidentId) {
   try {
-    const [incidentSite, incidentType] = String(incidentId || "").split("::");
+    const [incidentSite, incidentType] = String(incidentId || "").split(
+      INCIDENT_KEY_SEPARATOR
+    );
     const { alerts = [] } = await api.storage.local.get(["alerts"]);
     const updated = alerts.map((a) => {
       if (
