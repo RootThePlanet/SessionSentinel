@@ -215,6 +215,49 @@ function createDetailsRow(label, value) {
   return row;
 }
 
+function alertSiteLabel(alert) {
+  return alert.site || "Unknown site";
+}
+
+function alertTypeLabel(alert) {
+  return alert.type || "anomaly";
+}
+
+function buildIncidents(alerts) {
+  const grouped = new Map();
+  for (const alert of alerts) {
+    if (alert.dismissed) continue;
+    const site = alertSiteLabel(alert);
+    const type = alertTypeLabel(alert);
+    const key = `${site}::${type}`;
+    const severity = normalizeSeverity(alert.severity);
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        id: key,
+        site,
+        type,
+        severity,
+        source: alert.source,
+        tokenName: alert.tokenName,
+        createdAt: alert.createdAt || 0,
+        message: alert.message || "Anomaly detected",
+        eventCount: 0
+      });
+    }
+
+    const incident = grouped.get(key);
+    incident.eventCount += 1;
+    if ((alert.createdAt || 0) >= incident.createdAt) {
+      incident.createdAt = alert.createdAt || incident.createdAt;
+      incident.message = alert.message || incident.message;
+      incident.source = alert.source || incident.source;
+      incident.tokenName = alert.tokenName || incident.tokenName;
+      incident.severity = severity;
+    }
+  }
+  return [...grouped.values()].sort((a, b) => b.createdAt - a.createdAt);
+}
+
 function toggleAlertDetails(alertId) {
   expandedAlertId = expandedAlertId === alertId ? null : alertId;
   render();
@@ -286,6 +329,15 @@ function renderAlert(alert) {
   timeSpan.title = formatTime(alert.createdAt);
   meta.append(siteSpan, sep1, timeSpan);
 
+  const sepEvents = document.createElement("span");
+  sepEvents.className = "alert-meta-sep";
+  sepEvents.textContent = "\u00b7";
+  sepEvents.setAttribute("aria-hidden", "true");
+  const eventCountSpan = document.createElement("span");
+  eventCountSpan.textContent =
+    `${alert.eventCount || 1} event` + ((alert.eventCount || 1) !== 1 ? "s" : "");
+  meta.append(sepEvents, eventCountSpan);
+
   if (alert.source) {
     const sep2 = document.createElement("span");
     sep2.className = "alert-meta-sep";
@@ -330,7 +382,6 @@ function getFilteredAlerts(alerts) {
     .trim();
 
   return alerts.filter((a) => {
-    if (a.dismissed) return false;
     if (activeSeverityFilter !== "all" && a.severity !== activeSeverityFilter)
       return false;
     if (search) {
@@ -343,9 +394,8 @@ function getFilteredAlerts(alerts) {
 }
 
 function updateSeverityCounts(alerts) {
-  const undismissed = alerts.filter((a) => !a.dismissed);
-  const counts = { all: undismissed.length, high: 0, medium: 0, low: 0 };
-  undismissed.forEach((a) => {
+  const counts = { all: alerts.length, high: 0, medium: 0, low: 0 };
+  alerts.forEach((a) => {
     const s = normalizeSeverity(a.severity);
     if (counts[s] !== undefined) counts[s]++;
   });
@@ -361,11 +411,12 @@ async function render() {
   const alerts = Array.isArray(rawAlerts)
     ? rawAlerts.slice(0, MAX_POPUP_ALERTS)
     : [];
+  const incidents = buildIncidents(alerts);
 
   // Status bar
   const enabled = settings.monitoringEnabled !== false;
   const sensitivity = normalizeSensitivity(settings.alertSensitivity);
-  const undismissedCount = alerts.filter((a) => !a.dismissed).length;
+  const undismissedCount = incidents.length;
 
   document.getElementById("meta").textContent =
     (enabled ? "Active" : "Paused") +
@@ -373,7 +424,7 @@ async function render() {
     sensitivity +
     " \u00b7 " +
     undismissedCount +
-    " alert" +
+    " incident" +
     (undismissedCount !== 1 ? "s" : "");
 
   document.getElementById("statusDot").classList.toggle("active", enabled);
@@ -389,11 +440,11 @@ async function render() {
   toggleBtn.classList.toggle("monitoring-active", enabled);
 
   // Severity tab counts
-  updateSeverityCounts(alerts);
+  updateSeverityCounts(incidents);
 
   // Alert list
   const alertsEl = document.getElementById("alerts");
-  const filtered = getFilteredAlerts(alerts);
+  const filtered = getFilteredAlerts(incidents);
   if (expandedAlertId && !filtered.some((a) => a.id === expandedAlertId)) {
     expandedAlertId = null;
   }
@@ -405,15 +456,15 @@ async function render() {
     const icon = document.createElement("div");
     icon.className = "empty-icon";
     icon.setAttribute("aria-hidden", "true");
-    icon.innerHTML = alerts.length ? ICONS.shield : ICONS.shieldCheck;
+    icon.innerHTML = incidents.length ? ICONS.shield : ICONS.shieldCheck;
 
     const title = document.createElement("div");
     title.className = "empty-title";
-    title.textContent = alerts.length ? "No matching alerts" : "All clear";
+    title.textContent = incidents.length ? "No matching incidents" : "All clear";
 
     const desc = document.createElement("div");
     desc.className = "empty-desc";
-    desc.textContent = alerts.length
+    desc.textContent = incidents.length
       ? "Try adjusting your search or filter criteria."
       : "No suspicious session behavior detected. SessionSentinel is watching.";
 
@@ -456,15 +507,22 @@ async function render() {
 // Actions
 // ---------------------------------------------------------------------------
 
-async function dismissAlert(alertId) {
+async function dismissAlert(incidentId) {
   try {
-    api.runtime.sendMessage(
-      { type: MSG.DISMISS_ALERT, alertId },
-      () => {
-        if (typeof chrome !== "undefined") void chrome.runtime.lastError;
-        render();
+    const [incidentSite, incidentType] = String(incidentId || "").split("::");
+    const { alerts = [] } = await api.storage.local.get(["alerts"]);
+    const updated = alerts.map((a) => {
+      if (
+        !a.dismissed &&
+        alertSiteLabel(a) === incidentSite &&
+        alertTypeLabel(a) === incidentType
+      ) {
+        return { ...a, dismissed: true };
       }
-    );
+      return a;
+    });
+    await api.storage.local.set({ alerts: updated });
+    render();
   } catch (_) {
     render();
   }
