@@ -8,6 +8,7 @@ const MSG = C.MSG || {};
 const SEVERITY_LEVELS = C.SEVERITY_LEVELS || ["low", "medium", "high"];
 const MAX_POPUP_ALERTS = 50;
 const INCIDENT_KEY_SEPARATOR = "::";
+const DEFAULT_ALERT_TYPE = "anomaly";
 
 // ---------------------------------------------------------------------------
 // SVG icon templates (inline, no external dependencies)
@@ -221,7 +222,7 @@ function alertSiteLabel(alert) {
 }
 
 function alertTypeLabel(alert) {
-  return alert.type || "anomaly";
+  return alert.type || DEFAULT_ALERT_TYPE;
 }
 
 function buildIncidents(alerts) {
@@ -249,7 +250,7 @@ function buildIncidents(alerts) {
     const incident = grouped.get(key);
     incident.eventCount += 1;
     if ((alert.createdAt || 0) > incident.createdAt) {
-      incident.createdAt = alert.createdAt || incident.createdAt;
+      incident.createdAt = alert.createdAt;
       incident.message = alert.message || incident.message;
       incident.source = alert.source || incident.source;
       incident.tokenName = alert.tokenName || incident.tokenName;
@@ -307,7 +308,7 @@ function renderIncident(incident) {
   header.className = "alert-header";
   const typeEl = document.createElement("span");
   typeEl.className = "alert-type";
-  typeEl.textContent = incident.type?.replace(/_/g, " ") || "anomaly";
+  typeEl.textContent = incident.type?.replace(/_/g, " ") || DEFAULT_ALERT_TYPE;
   const badge = document.createElement("span");
   badge.className = "alert-badge";
   badge.textContent = severity;
@@ -335,9 +336,8 @@ function renderIncident(incident) {
   sepEvents.textContent = "\u00b7";
   sepEvents.setAttribute("aria-hidden", "true");
   const eventCountSpan = document.createElement("span");
-  const eventCount = incident.eventCount || 1;
-  eventCountSpan.textContent =
-    `${eventCount} event` + (eventCount !== 1 ? "s" : "");
+  const eventCount = incident.eventCount;
+  eventCountSpan.textContent = `${eventCount} event` + (eventCount !== 1 ? "s" : "");
   meta.append(sepEvents, eventCountSpan);
 
   if (incident.source) {
@@ -514,9 +514,9 @@ async function render() {
 
 async function dismissAlert(incidentId) {
   try {
-    const parts = String(incidentId || "").split(INCIDENT_KEY_SEPARATOR);
-    if (parts.length < 2) return;
-    const [incidentSite, incidentType] = parts;
+    const parsed = parseIncidentKey(incidentId);
+    if (!parsed) return;
+    const { incidentSite, incidentType } = parsed;
     const { alerts = [] } = await api.storage.local.get(["alerts"]);
     const updated = alerts.map((a) => {
       if (
@@ -533,6 +533,12 @@ async function dismissAlert(incidentId) {
   } catch (_) {
     render();
   }
+}
+
+function parseIncidentKey(incidentId) {
+  const parts = String(incidentId || "").split(INCIDENT_KEY_SEPARATOR);
+  if (parts.length < 2) return null;
+  return { incidentSite: parts[0], incidentType: parts.slice(1).join(INCIDENT_KEY_SEPARATOR) };
 }
 
 async function clearAlerts() {
