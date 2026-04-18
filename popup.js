@@ -268,26 +268,26 @@ function toggleAlertDetails(alertId) {
 // Rendering
 // ---------------------------------------------------------------------------
 
-function renderAlert(alert) {
+function renderIncident(incident) {
   const container = document.createElement("div");
-  const severity = normalizeSeverity(alert.severity);
-  const isExpanded = expandedAlertId === alert.id;
+  const severity = normalizeSeverity(incident.severity);
+  const isExpanded = expandedAlertId === incident.id;
   container.className = "alert " + severity;
-  container.dataset.alertId = alert.id;
+  container.dataset.alertId = incident.id;
   container.classList.toggle("expanded", isExpanded);
   container.tabIndex = 0;
   container.setAttribute("role", "button");
   container.setAttribute(
     "aria-label",
-    `${prettifyType(alert.type)} alert on ${alert.site || "unknown"}`
+    `${prettifyType(incident.type)} alert on ${incident.site || "unknown"}`
   );
   container.setAttribute("aria-expanded", String(isExpanded));
   container.title = "Click to view details";
-  container.addEventListener("click", () => toggleAlertDetails(alert.id));
+  container.addEventListener("click", () => toggleAlertDetails(incident.id));
   container.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" && e.key !== " ") return;
     e.preventDefault();
-    toggleAlertDetails(alert.id);
+    toggleAlertDetails(incident.id);
   });
 
   // Severity icon
@@ -307,7 +307,7 @@ function renderAlert(alert) {
   header.className = "alert-header";
   const typeEl = document.createElement("span");
   typeEl.className = "alert-type";
-  typeEl.textContent = alert.type?.replace(/_/g, " ") || "anomaly";
+  typeEl.textContent = incident.type?.replace(/_/g, " ") || "anomaly";
   const badge = document.createElement("span");
   badge.className = "alert-badge";
   badge.textContent = severity;
@@ -315,19 +315,19 @@ function renderAlert(alert) {
 
   const msg = document.createElement("div");
   msg.className = "alert-message";
-  msg.textContent = alert.message || "Anomaly detected";
+  msg.textContent = incident.message || "Anomaly detected";
 
   const meta = document.createElement("div");
   meta.className = "alert-meta";
   const siteSpan = document.createElement("span");
-  siteSpan.textContent = alert.site || "unknown";
+  siteSpan.textContent = incident.site || "unknown";
   const sep1 = document.createElement("span");
   sep1.className = "alert-meta-sep";
   sep1.textContent = "\u00b7";
   sep1.setAttribute("aria-hidden", "true");
   const timeSpan = document.createElement("span");
-  timeSpan.textContent = timeAgo(alert.createdAt);
-  timeSpan.title = formatTime(alert.createdAt);
+  timeSpan.textContent = timeAgo(incident.createdAt);
+  timeSpan.title = formatTime(incident.createdAt);
   meta.append(siteSpan, sep1, timeSpan);
 
   const sepEvents = document.createElement("span");
@@ -335,22 +335,22 @@ function renderAlert(alert) {
   sepEvents.textContent = "\u00b7";
   sepEvents.setAttribute("aria-hidden", "true");
   const eventCountSpan = document.createElement("span");
-  const eventCount = alert.eventCount || 1;
+  const eventCount = incident.eventCount || 1;
   eventCountSpan.textContent =
     `${eventCount} event` + (eventCount !== 1 ? "s" : "");
   meta.append(sepEvents, eventCountSpan);
 
-  if (alert.source) {
+  if (incident.source) {
     const sep2 = document.createElement("span");
     sep2.className = "alert-meta-sep";
     sep2.textContent = "\u00b7";
     sep2.setAttribute("aria-hidden", "true");
     const sourceSpan = document.createElement("span");
-    sourceSpan.textContent = alert.source;
+    sourceSpan.textContent = incident.source;
     meta.append(sep2, sourceSpan);
   }
 
-  const insights = getAlertInsights(alert, severity);
+  const insights = getAlertInsights(incident, severity);
   const details = document.createElement("div");
   details.className = "alert-details";
   details.hidden = !isExpanded;
@@ -371,7 +371,7 @@ function renderAlert(alert) {
   dismiss.setAttribute("aria-label", "Dismiss alert");
   dismiss.addEventListener("click", (e) => {
     e.stopPropagation();
-    dismissAlert(alert.id);
+    dismissAlert(incident.id);
   });
 
   container.append(severityEl, content, dismiss);
@@ -384,7 +384,10 @@ function getFilteredAlerts(alerts) {
     .trim();
 
   return alerts.filter((a) => {
-    if (activeSeverityFilter !== "all" && a.severity !== activeSeverityFilter)
+    if (
+      activeSeverityFilter !== "all" &&
+      normalizeSeverity(a.severity) !== activeSeverityFilter
+    )
       return false;
     if (search) {
       const haystack =
@@ -499,7 +502,7 @@ async function render() {
 
     // Alerts for this site
     for (const a of siteAlerts) {
-      fragment.appendChild(renderAlert(a));
+      fragment.appendChild(renderIncident(a));
     }
   }
   alertsEl.replaceChildren(fragment);
@@ -511,9 +514,9 @@ async function render() {
 
 async function dismissAlert(incidentId) {
   try {
-    const [incidentSite, incidentType] = String(incidentId || "").split(
-      INCIDENT_KEY_SEPARATOR
-    );
+    const parts = String(incidentId || "").split(INCIDENT_KEY_SEPARATOR);
+    if (parts.length < 2) return;
+    const [incidentSite, incidentType] = parts;
     const { alerts = [] } = await api.storage.local.get(["alerts"]);
     const updated = alerts.map((a) => {
       if (
