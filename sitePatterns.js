@@ -134,6 +134,106 @@
       displayName: "Atlassian",
       cookiePatterns: ["cloud.session.token", "atlassian.xsrf.token", "seraph.rememberme.cookie"],
       storageKeyPatterns: ["token", "auth", "session", "atlassian"]
+    },
+    "gitlab.com": {
+      displayName: "GitLab",
+      cookiePatterns: ["_gitlab_session", "remember_user_token", "experimentation_subject_id"],
+      storageKeyPatterns: ["token", "auth", "session", "gitlab"]
+    },
+    "bitbucket.org": {
+      displayName: "Bitbucket",
+      cookiePatterns: ["bitbucket.session.id", "bb_session", "tenacious"],
+      storageKeyPatterns: ["token", "auth", "session", "bitbucket"]
+    },
+    "notion.so": {
+      displayName: "Notion",
+      cookiePatterns: ["token_v2", "notion_browser_id", "file_token"],
+      storageKeyPatterns: ["token", "auth", "session", "notion"]
+    },
+    "airbnb.com": {
+      displayName: "Airbnb",
+      cookiePatterns: ["airbnb_session_id", "bev", "_airbed_session_id"],
+      storageKeyPatterns: ["token", "auth", "session", "airbnb"]
+    },
+    "canva.com": {
+      displayName: "Canva",
+      cookiePatterns: ["canva_session", "csrf-token", "canva_uid"],
+      storageKeyPatterns: ["token", "auth", "session", "canva"]
+    },
+    "stripe.com": {
+      displayName: "Stripe",
+      cookiePatterns: ["__stripe_mid", "__stripe_sid", "m"],
+      storageKeyPatterns: ["token", "auth", "session", "stripe"]
+    },
+    "shopify.com": {
+      displayName: "Shopify",
+      cookiePatterns: ["_secure_session_id", "_shopify_y", "_shopify_s"],
+      storageKeyPatterns: ["token", "auth", "session", "shopify"]
+    },
+    "walmart.com": {
+      displayName: "Walmart",
+      cookiePatterns: ["cid", "vtc", "auth"],
+      storageKeyPatterns: ["token", "auth", "session", "walmart"]
+    },
+    "target.com": {
+      displayName: "Target",
+      cookiePatterns: ["visitorId", "Tealeaf", "auth-token"],
+      storageKeyPatterns: ["token", "auth", "session", "target"]
+    },
+    "bestbuy.com": {
+      displayName: "Best Buy",
+      cookiePatterns: ["utag_main", "bby_rdp", "loggedIn"],
+      storageKeyPatterns: ["token", "auth", "session", "bestbuy"]
+    },
+    "roblox.com": {
+      displayName: "Roblox",
+      cookiePatterns: [".ROBLOSECURITY", "RBXEventTrackerV2", "GuestData"],
+      storageKeyPatterns: ["token", "auth", "session", "roblox"]
+    },
+    "snapchat.com": {
+      displayName: "Snapchat",
+      cookiePatterns: ["sc-sid", "sc-a", "xsrf_token"],
+      storageKeyPatterns: ["token", "auth", "session", "snapchat"]
+    },
+    "pinterest.com": {
+      displayName: "Pinterest",
+      cookiePatterns: ["_pinterest_sess", "_auth", "_b"],
+      storageKeyPatterns: ["token", "auth", "session", "pinterest"]
+    },
+    "trello.com": {
+      displayName: "Trello",
+      cookiePatterns: ["token", "cloud.session.token", "_trello_session"],
+      storageKeyPatterns: ["token", "auth", "session", "trello"]
+    },
+    "asana.com": {
+      displayName: "Asana",
+      cookiePatterns: ["asana_session", "x-asana-csrf", "remember_me"],
+      storageKeyPatterns: ["token", "auth", "session", "asana"]
+    },
+    "figma.com": {
+      displayName: "Figma",
+      cookiePatterns: ["figma_session", "csrf", "_figma"],
+      storageKeyPatterns: ["token", "auth", "session", "figma"]
+    },
+    "heroku.com": {
+      displayName: "Heroku",
+      cookiePatterns: ["heroku-session", "csrf-token", "heroku-nav-data"],
+      storageKeyPatterns: ["token", "auth", "session", "heroku"]
+    },
+    "digitalocean.com": {
+      displayName: "DigitalOcean",
+      cookiePatterns: ["DO-LB", "_digitalocean_session", "remember_user_token"],
+      storageKeyPatterns: ["token", "auth", "session", "digitalocean"]
+    },
+    "okta.com": {
+      displayName: "Okta",
+      cookiePatterns: ["sid", "idx", "JSESSIONID"],
+      storageKeyPatterns: ["token", "auth", "session", "okta"]
+    },
+    "steamcommunity.com": {
+      displayName: "Steam",
+      cookiePatterns: ["sessionid", "steamLoginSecure", "steamRememberLogin"],
+      storageKeyPatterns: ["token", "auth", "session", "steam"]
     }
   };
 
