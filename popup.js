@@ -7,7 +7,6 @@ const C = globalThis.SESSION_SENTINEL_CONSTANTS || {};
 const MSG = C.MSG || {};
 const SEVERITY_LEVELS = C.SEVERITY_LEVELS || ["low", "medium", "high"];
 const MAX_POPUP_ALERTS = 50;
-const INCIDENT_KEY_SEPARATOR = "::";
 const DEFAULT_ALERT_TYPE = "anomaly";
 
 // ---------------------------------------------------------------------------
@@ -231,7 +230,7 @@ function buildIncidents(alerts) {
     if (alert.dismissed) continue;
     const site = alertSiteLabel(alert);
     const type = alertTypeLabel(alert);
-    const key = `${site}${INCIDENT_KEY_SEPARATOR}${type}`;
+    const key = buildIncidentKey(site, type);
     const severity = normalizeSeverity(alert.severity);
     if (!grouped.has(key)) {
       grouped.set(key, {
@@ -536,9 +535,21 @@ async function dismissAlert(incidentId) {
 }
 
 function parseIncidentKey(incidentId) {
-  const parts = String(incidentId || "").split(INCIDENT_KEY_SEPARATOR);
-  if (parts.length < 2) return null;
-  return { incidentSite: parts[0], incidentType: parts.slice(1).join(INCIDENT_KEY_SEPARATOR) };
+  try {
+    const parsed = JSON.parse(String(incidentId || ""));
+    if (!Array.isArray(parsed) || parsed.length !== 2) return null;
+    const [incidentSite, incidentType] = parsed;
+    if (typeof incidentSite !== "string" || typeof incidentType !== "string") {
+      return null;
+    }
+    return { incidentSite, incidentType };
+  } catch (_) {
+    return null;
+  }
+}
+
+function buildIncidentKey(site, type) {
+  return JSON.stringify([site, type]);
 }
 
 async function clearAlerts() {
