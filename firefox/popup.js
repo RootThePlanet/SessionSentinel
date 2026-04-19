@@ -50,6 +50,7 @@ const SEVERITY_ICON = {
 
 let activeSeverityFilter = "all";
 let expandedAlertId = null;
+const expandedSiteKeys = new Set();
 
 // ---------------------------------------------------------------------------
 // Dark mode — supports "system" | "dark" | "light" (and legacy booleans)
@@ -264,6 +265,19 @@ function toggleAlertDetails(alertId) {
   render();
 }
 
+function buildSiteGroupKey(site) {
+  return String(site || "Unknown site").toLowerCase();
+}
+
+function toggleSiteGroup(siteKey) {
+  if (expandedSiteKeys.has(siteKey)) {
+    expandedSiteKeys.delete(siteKey);
+  } else {
+    expandedSiteKeys.add(siteKey);
+  }
+  render();
+}
+
 // ---------------------------------------------------------------------------
 // Rendering
 // ---------------------------------------------------------------------------
@@ -442,6 +456,10 @@ async function render() {
     enabled ? "Pause monitoring" : "Resume monitoring"
   );
   toggleBtn.classList.toggle("monitoring-active", enabled);
+  const monitorSwitch = document.getElementById("monitorSwitch");
+  if (monitorSwitch) {
+    monitorSwitch.checked = enabled;
+  }
 
   // Severity tab counts
   updateSeverityCounts(incidents);
@@ -481,28 +499,57 @@ async function render() {
   const groups = new Map();
   for (const a of filtered) {
     const site = a.site || "Unknown site";
-    if (!groups.has(site)) groups.set(site, []);
-    groups.get(site).push(a);
+    const siteKey = buildSiteGroupKey(site);
+    if (!groups.has(siteKey)) {
+      groups.set(siteKey, { site, siteKey, alerts: [], totalEvents: 0 });
+    }
+    const group = groups.get(siteKey);
+    group.alerts.push(a);
+    group.totalEvents += a.eventCount || 1;
+  }
+
+  for (const key of [...expandedSiteKeys]) {
+    if (!groups.has(key)) expandedSiteKeys.delete(key);
   }
 
   const fragment = document.createDocumentFragment();
-  for (const [site, siteAlerts] of groups) {
+  for (const [, siteGroup] of groups) {
+    const { site, siteKey, alerts: siteAlerts, totalEvents } = siteGroup;
+    const isExpanded = expandedSiteKeys.has(siteKey);
+
     // Site group header
     const header = document.createElement("div");
     header.className = "site-group-header";
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "site-group-toggle";
+    toggle.setAttribute("aria-expanded", String(isExpanded));
+    toggle.setAttribute("aria-controls", `site-group-${siteKey}`);
+    toggle.addEventListener("click", () => toggleSiteGroup(siteKey));
+    const chevron = document.createElement("span");
+    chevron.className = "site-group-chevron";
+    chevron.setAttribute("aria-hidden", "true");
+    chevron.innerHTML =
+      '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>';
     const siteLabel = document.createElement("span");
     siteLabel.className = "site-group-name";
     siteLabel.textContent = site;
     const countBadge = document.createElement("span");
     countBadge.className = "site-group-count";
-    countBadge.textContent = siteAlerts.length;
-    header.append(siteLabel, countBadge);
+    countBadge.textContent = totalEvents;
+    toggle.append(chevron, siteLabel, countBadge);
+    header.append(toggle);
     fragment.appendChild(header);
 
     // Alerts for this site
+    const groupItems = document.createElement("div");
+    groupItems.className = "site-group-items";
+    groupItems.id = `site-group-${siteKey}`;
+    groupItems.hidden = !isExpanded;
     for (const a of siteAlerts) {
-      fragment.appendChild(renderIncident(a));
+      groupItems.appendChild(renderIncident(a));
     }
+    fragment.appendChild(groupItems);
   }
   alertsEl.replaceChildren(fragment);
 }
@@ -640,6 +687,9 @@ initSeverityTabs();
 document
   .getElementById("toggleMonitor")
   .addEventListener("click", toggleMonitoring);
+document
+  .getElementById("monitorSwitch")
+  .addEventListener("change", toggleMonitoring);
 document
   .getElementById("toggleDark")
   .addEventListener("click", toggleDarkMode);
